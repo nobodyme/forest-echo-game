@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forest Echo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="container"></div>
+    <div id="info">
+        <div class="controls-info">
+            <p>Use WASD or arrow keys to move</p>
+            <p>Use mouse to look around</p>
+            <p>Press ESC to release mouse control</p>
+        </div>
+    </div>
+    <div id="loading">Loading...</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
