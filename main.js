@@ -425,8 +425,8 @@ function animate() {
       }
 
       // Calculate movement velocity
-      velocity.z = -direction.z * speed * delta;
-      velocity.x = -direction.x * speed * delta;
+      velocity.z = direction.z * speed * delta;
+      velocity.x = direction.x * speed * delta;
     }
 
     // Move character using the calculated velocity
