@@ -73,7 +73,11 @@ function createNaturalTree(treeType, position, scale) {
       // Store original position for wind animation
       leafLayer.userData.originalY = leafLayer.position.y;
       leafLayer.userData.originalRotation = { x: leafLayer.rotation.x, y: leafLayer.rotation.y, z: leafLayer.rotation.z };
-      leafLayer.userData.windFactor = Math.random() * 0.5 + 0.5; // Random wind factor
+      leafLayer.userData.windFactor = Math.random() * 0.7 + 0.6; // Increased random wind factor for more movement
+
+      // Add slight initial rotation for more natural look
+      leafLayer.rotation.x = (Math.random() - 0.5) * 0.1;
+      leafLayer.rotation.z = (Math.random() - 0.5) * 0.1;
 
       leafGroup.add(leafLayer);
     }
@@ -168,7 +172,12 @@ function createNaturalTree(treeType, position, scale) {
       cluster.userData.originalY = cluster.position.y;
       cluster.userData.originalPosition = cluster.position.clone();
       cluster.userData.originalRotation = { x: cluster.rotation.x, y: cluster.rotation.y, z: cluster.rotation.z };
-      cluster.userData.windFactor = Math.random() * 0.5 + 0.5; // Random wind factor
+      cluster.userData.windFactor = Math.random() * 0.8 + 0.7; // Increased wind factor for more movement
+
+      // Add slight initial rotation for more natural look
+      cluster.rotation.x = (Math.random() - 0.5) * 0.2;
+      cluster.rotation.y = (Math.random() - 0.5) * 0.2;
+      cluster.rotation.z = (Math.random() - 0.5) * 0.2;
 
       leafGroup.add(cluster);
     }

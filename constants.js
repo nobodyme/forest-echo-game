@@ -6,5 +6,5 @@ export const CHARACTER_SPEED = 150.0;
 export const CHARACTER_HEIGHT = 1.7;
 export const GRAVITY = 30.0;
 export const JUMP_FORCE = 10.0;
-export const WIND_STRENGTH = 0.3; // Wind strength for leaf movement
-export const WIND_SPEED = 0.5; // Wind speed for animation
+export const WIND_STRENGTH = 0.5; // Wind strength for leaf movement
+export const WIND_SPEED = 0.8; // Wind speed for animation
