@@ -1,12 +1,11 @@
 // Core setup and animation loop
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createLighting, createSky, createGround, createWater } from './environment.js';
 import { createForest, createUndergrowth, trees, leafGroups, undergrowth } from './forest.js';
-import { loadCharacter, initControls, character, mixer, controls, movementState } from './character.js';
+import { loadCharacter, character, mixer, movementState, updateThirdPersonCamera, updateCharacterRotation, animateCharacterWalking } from './character.js';
 import { checkTreeCollisions, isInWater } from './physics.js';
 import { animateWind } from './animation.js';
-import { WORLD_SIZE, CHARACTER_HEIGHT, GRAVITY, WIND_STRENGTH, WIND_SPEED, CHARACTER_SPEED } from './constants.js';
+import { WORLD_SIZE, CHARACTER_HEIGHT, GRAVITY, WIND_STRENGTH, WIND_SPEED, CHARACTER_SPEED, JUMP_FORCE } from './constants.js';
 
 // Main variables
 let camera, scene, renderer;
@@ -15,6 +14,9 @@ let prevTime = performance.now();
 let direction = new THREE.Vector3();
 let waterSurface;
 let loadingManager;
+let isPointerLocked = false;
+let mouseX = 0;
+let mouseY = 0;
 
 /**
  * Initialize the scene
@@ -45,8 +47,24 @@ export function init() {
   renderer.toneMappingExposure = 0.5;
   document.getElementById('container').appendChild(renderer.domElement);
 
-  // Initialize controls
-  initControls(camera, renderer.domElement);
+  // Add key event listeners for character movement
+  document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('keyup', onKeyUp);
+
+  // Add click event listener to lock pointer
+  const container = document.getElementById('container');
+  const canvas = renderer.domElement;
+  container.addEventListener('click', () => {
+    canvas.requestPointerLock();
+  });
+
+  // Add pointer lock change event listeners
+  document.addEventListener('pointerlockchange', onPointerLockChange);
+
+  // Auto-lock pointer on page load for testing
+  setTimeout(() => {
+    canvas.requestPointerLock();
+  }, 1000);
 
   // Add window resize listener
   window.addEventListener('resize', onWindowResize);
@@ -71,6 +89,91 @@ function onWindowResize() {
 }
 
 /**
+ * Handle pointer lock change
+ */
+function onPointerLockChange() {
+  const canvas = renderer.domElement;
+  isPointerLocked = document.pointerLockElement === canvas;
+
+  if (isPointerLocked) {
+    document.addEventListener('mousemove', onMouseMove);
+    document.getElementById('info').classList.add('hidden');
+  } else {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.getElementById('info').classList.remove('hidden');
+  }
+}
+
+/**
+ * Handle mouse movement
+ * @param {MouseEvent} event - The mouse event
+ */
+function onMouseMove(event) {
+  if (!isPointerLocked) return;
+
+  // Update mouse position for camera rotation
+  mouseX += event.movementX * 0.002;
+}
+
+/**
+ * Handle key down events
+ * @param {KeyboardEvent} event - The keyboard event
+ */
+function onKeyDown(event) {
+  // Process key events even if pointer is not locked
+  switch (event.code) {
+    case 'ArrowUp':
+    case 'KeyW':
+      movementState.moveForward = true;
+      break;
+    case 'ArrowLeft':
+    case 'KeyA':
+      movementState.turnLeft = true;
+      break;
+    case 'ArrowDown':
+    case 'KeyS':
+      movementState.moveBackward = true;
+      break;
+    case 'ArrowRight':
+    case 'KeyD':
+      movementState.turnRight = true;
+      break;
+    case 'Space':
+      if (movementState.canJump) {
+        movementState.velocity.y = JUMP_FORCE;
+      }
+      movementState.canJump = false;
+      break;
+  }
+}
+
+/**
+ * Handle key up events
+ * @param {KeyboardEvent} event - The keyboard event
+ */
+function onKeyUp(event) {
+  // Process key events even if pointer is not locked
+  switch (event.code) {
+    case 'ArrowUp':
+    case 'KeyW':
+      movementState.moveForward = false;
+      break;
+    case 'ArrowLeft':
+    case 'KeyA':
+      movementState.turnLeft = false;
+      break;
+    case 'ArrowDown':
+    case 'KeyS':
+      movementState.moveBackward = false;
+      break;
+    case 'ArrowRight':
+    case 'KeyD':
+      movementState.turnRight = false;
+      break;
+  }
+}
+
+/**
  * Animation loop
  */
 function animate() {
@@ -92,7 +195,7 @@ function animate() {
   }
 
   // Handle character movement
-  if (controls.isLocked) {
+  if (character) { // Process character movement even if pointer is not locked
     const time = performance.now();
     const moveDelta = (time - prevTime) / 1000;
 
@@ -103,52 +206,58 @@ function animate() {
     movementState.velocity.x = 0;
     movementState.velocity.z = 0;
 
-    // Get movement direction
+    // Get movement direction - only forward/backward now
     direction.z = Number(movementState.moveForward) - Number(movementState.moveBackward);
-    direction.x = Number(movementState.moveRight) - Number(movementState.moveLeft);
+    direction.x = 0; // No more left/right movement, only rotation
 
     // Only normalize if we're actually moving
-    if (direction.x !== 0 || direction.z !== 0) {
+    if (direction.z !== 0) {
       direction.normalize();
 
       // Calculate movement speed (slower in water)
       let speed = CHARACTER_SPEED;
-      if (isInWater(camera.position, waterSurface, WORLD_SIZE)) {
+      if (isInWater(character.position, waterSurface, WORLD_SIZE)) {
         speed *= 0.5;
       }
 
-      // Calculate movement velocity
-      movementState.velocity.z = direction.z * speed * moveDelta;
-      movementState.velocity.x = direction.x * speed * moveDelta;
+      // Calculate movement velocity based on character's rotation
+      const angle = character.rotation.y;
+      movementState.velocity.x = Math.sin(angle) * direction.z * speed * moveDelta;
+      movementState.velocity.z = Math.cos(angle) * direction.z * speed * moveDelta;
     }
 
-    // Move character using the calculated velocity
-    controls.moveRight(movementState.velocity.x);
-    controls.moveForward(movementState.velocity.z);
+    // Update character rotation based on turn state
+    updateCharacterRotation(delta);
 
-    // Update character position to match camera
-    character.position.copy(camera.position);
-    character.position.y -= CHARACTER_HEIGHT;
+    // Animate character walking
+    animateCharacterWalking(delta, direction);
+
+    // Move character using the calculated velocity
+    character.position.x += movementState.velocity.x;
+    character.position.z += movementState.velocity.z;
+
+    // Apply gravity to character position
+    character.position.y += movementState.velocity.y * moveDelta;
 
     // Check for collisions with trees
-    checkTreeCollisions(camera.position, 1.0, trees);
+    checkTreeCollisions(character.position, 1.0, trees);
 
     // Keep character within world bounds
     const worldHalfSize = WORLD_SIZE / 2;
-    if (camera.position.x < -worldHalfSize) camera.position.x = -worldHalfSize;
-    if (camera.position.x > worldHalfSize) camera.position.x = worldHalfSize;
-    if (camera.position.z < -worldHalfSize) camera.position.z = -worldHalfSize;
-    if (camera.position.z > worldHalfSize) camera.position.z = worldHalfSize;
-
-    // Apply gravity to camera position
-    camera.position.y += movementState.velocity.y * moveDelta;
+    if (character.position.x < -worldHalfSize) character.position.x = -worldHalfSize;
+    if (character.position.x > worldHalfSize) character.position.x = worldHalfSize;
+    if (character.position.z < -worldHalfSize) character.position.z = -worldHalfSize;
+    if (character.position.z > worldHalfSize) character.position.z = worldHalfSize;
 
     // Check if character is on the ground
-    if (camera.position.y < CHARACTER_HEIGHT) {
+    if (character.position.y < CHARACTER_HEIGHT / 2) {
       movementState.velocity.y = 0;
-      camera.position.y = CHARACTER_HEIGHT;
+      character.position.y = CHARACTER_HEIGHT / 2;
       movementState.canJump = true;
     }
+
+    // Update camera position to follow character
+    updateThirdPersonCamera(camera, character.position);
 
     prevTime = time;
   }
