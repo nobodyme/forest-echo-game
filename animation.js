@@ -50,8 +50,8 @@ function updateWindParameters(delta) {
     // Set new gust duration (3-8 seconds)
     gustDuration = 3 + Math.random() * 5;
 
-    // Set new target gust strength (0-2.5x multiplier)
-    targetGustStrength = Math.random() * 2.5;
+    // Set new target gust strength (0-1.5x multiplier) with a reasonable upper limit
+    targetGustStrength = Math.random() * 1.5;
 
     // Occasionally change wind direction (20% chance)
     if (Math.random() < 0.2) {
