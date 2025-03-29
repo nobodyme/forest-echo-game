@@ -6,3 +6,13 @@ So far, the only change that required a developer perspective was asking it to s
 Now it's back to working ways again.
 
 Let's see how far can we push it?
+
+
+https://github.com/user-attachments/assets/1b9a9280-4db6-45c4-8a22-2bd9036b3695
+
+<!-- Alternative formats you can try if the above doesn't render properly:
+![Vibe Coding Demo](https://github.com/user-attachments/assets/1b9a9280-4db6-45c4-8a22-2bd9036b3695)
+
+<video src="https://github.com/user-attachments/assets/1b9a9280-4db6-45c4-8a22-2bd9036b3695" controls="controls" muted="muted" style="max-width:100%;">
+</video>
+-->
